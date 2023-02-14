@@ -50,7 +50,9 @@ class Spider:
         if page_url not in Spider.crawled:
             print(thread_name + " now crawling ->  " + page_url + "\n")
             print("Queue: " + str(len(Spider.queue)) + " | Crawled: " + str(len(Spider.crawled)))
-            Spider.add_links_to_queue(Spider.gather_links(page_url))
+            links, priority = Spider.gather_links(page_url)
+            # How to remove the 2 items from the set(links, priority) 
+            Spider.add_links_to_crawl(links, priority)
             # generate the service queues
             Spider.queue.remove(page_url)
             Spider.crawled.add(page_url)
@@ -73,7 +75,7 @@ class Spider:
             print("Error crawling this page")
             return set()
 
-        return finder.handle_links()
+        return finder.page_links()
 
     @staticmethod
     def add_links_to_crawl(links, priority):
@@ -93,7 +95,7 @@ class Spider:
 
 
     # Reduce priority of similar page in crawled_links
-    def reduce_priority(url, signature):
+    def reduce_priority(self, url, signature):
         r = redis.Redis()
         # check for similarity in crawled_links
         r.zincrby("links", -1, url)
@@ -108,7 +110,7 @@ class Spider:
 
 
     # Remove visited link from links_to_crawl in the database
-    def remove_link_to_crawl(url, priority):
+    def remove_link_to_crawl(self, url, priority):
         r = redis.Redis()
         next_link = r.zrange("links", 0, 0)[0]
         r.zrem("links", next_link)

@@ -1,5 +1,5 @@
 # An abstraction within the crawler that works with MOngo DB
-from page import Page
+# from page import Page
 import pymongo
 import redis
 
@@ -10,9 +10,9 @@ class LinksDataStore(object):
         self.url = url
         self.signature = signature
         self.r = redis.Redis(host="localhost", port=5040, db=0)
-        pass
+        
 
-    def boot():
+    def boot(self):
         client = pymongo.MongoClient("mongodb://localhost:27017/")
 
         db = client.LinkStore
@@ -33,9 +33,8 @@ class LinksDataStore(object):
             ( 
                 {"url": urls} 
             )
-            self.r.zadd("links_to_crawl", {url, priority})  
-        pass
-    
+            self.r.zadd("links_to_crawl", {url, priority})
+            # pass
     # Remove a visited link from links_to_crawl
     def remove_link_to_crawl(self, url, priority):
         """Remove the given link from `links_to_crawl`."""
@@ -44,7 +43,7 @@ class LinksDataStore(object):
             {"url": url}
         )
         self.r.zrem("links_to_crawl", {url, priority})
-        pass
+        # pass
 
     # Reduce link priority for a similar link
     def reduce_priority_link_to_crawl(self, url):
@@ -77,4 +76,3 @@ class LinksDataStore(object):
         # The page has not been crawled yet, so we can process it
             self.insert_crawled_link(url, signature)
     # ...
-

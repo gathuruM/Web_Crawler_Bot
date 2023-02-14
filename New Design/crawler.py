@@ -1,6 +1,6 @@
 class Crawler(object):
 
-    def __init__(self, pages, data_store, reverse_index_queue, doc_index_queue):
+    def __init__(self, data_store, reverse_index_queue, doc_index_queue):
         # self.pages = pages
         self.data_store = data_store
         self.reverse_index_queue = reverse_index_queue

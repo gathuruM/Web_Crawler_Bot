@@ -20,7 +20,32 @@ class LinkFinder(HTMLParser):
             for (attribute, value) in attrs:
                 if attribute == 'href':
                     url = parse.urljoin(self.base_url, value)
-                    self.links.add(url)
+                    response = requests.get(url)
+                    contents = response.content
+
+                    # Parse the HTML content
+                    soup = BeautifulSoup(contents, "html.parser")
+                    priority = 0
+
+                    # Check the number of incoming links
+                    priority += len(soup.find_all("a"))
+
+                    # Check for keywords in the title and body
+                    title = soup.find("title").get_text()
+                    body = soup.find("body").get_text()
+                    keywords = ["news", "current events", "breaking"]
+                    for word in keywords:
+                        if word in title or word in body:
+                            priority += 1
+
+                    # Check for social media engagement
+                    socials = ["facebook", "twitter", "instagram"]
+                    social_tags = soup.find_all(socials)
+
+                    priority += len(social_tags)
+                    self.links.add(url, priority)
+
+    def page_links(self):
         return self.links
 
     def process_link(self, page_url):
@@ -45,14 +70,14 @@ class LinkFinder(HTMLParser):
 
         return self.reverse_index
     
-    def determine_link_priority(url):
-         # Parse the HTML content
-        soup = BeautifulSoup(contents, "html.parser")
-        priority = 0
-
+    def determine_link_priority(self, url):
         # Get the contents of the link
         response = requests.get(url)
         contents = response.content
+
+         # Parse the HTML content
+        soup = BeautifulSoup(contents, "html.parser")
+        priority = 0
 
         # Check the number of incoming links
         priority += len(soup.find_all("a"))

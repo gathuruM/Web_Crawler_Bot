@@ -4,7 +4,7 @@ class Page(object):
     def __init__(self, url, contents):
         self.url = url
         self.contents = contents
-        self.child_urls = LinkFinder.handle_links()
+        self.child_urls = LinkFinder.page_links(self)
         self.signature = self.create_signature()
 
     def create_signature(self):
