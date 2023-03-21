@@ -1,6 +1,5 @@
 from urllib.request import urlopen  # Allows connecting to webpages
 from linkFinder import LinkFinder
-from general import *
 from domain import *
 import redis, requests
 from bs4 import BeautifulSoup
@@ -14,12 +13,12 @@ import pymongo
 class Spider:
 
     # Making a class variable, can be shared among all instances(spiders)
-    project_name = ""
+    
     base_url = ""
     domain_name = ""
     queue_file = ""
     crawled_file = ""
-    r = redis.Redis(host="localhost", port=6040, db=0)
+    # r = redis.Redis(host="localhost", port=6040, db=0)
     queue = set()
     crawled = set()
 
@@ -114,6 +113,30 @@ class Spider:
         r = redis.Redis()
         next_link = r.zrange("links", 0, 0)[0]
         r.zrem("links", next_link)
+
+
+        
+    def process_link(self, page_url):
+        # Get the contents of the link
+        response = requests.get(page_url)
+        content = response.content
+
+        # Fetch the contents of the link
+        soup = BeautifulSoup(content, "html.parser")
+
+        # Extract the text from the page
+        text = soup.get_text()
+
+        # Tokenize the text
+        words = text.split()
+
+        # Stem the words
+        stemmed_words = [stemmer.stem(word) for word in words]
+
+        for word in stemmed_words:
+            self.reverse_index[word].append(page_url)
+
+        return self.reverse_index
 
     @staticmethod
     def update_files():

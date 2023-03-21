@@ -1,5 +1,9 @@
-import os
+from pymongo import MongoClient
 
+client = MongoClient()
+
+db = client[]
+collection = db[]
 # Each website I crawl gets into a separate folder
 def create_project_dir(directory):
     if not os.path.exists(directory):

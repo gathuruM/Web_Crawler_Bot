@@ -3,6 +3,7 @@ from linkFinder import LinkFinder
 from general import *
 from domain import *
 import redis, requests
+from pymongo import MongoClient
 from bs4 import BeautifulSoup
 
     # 1. Spider picks a url from the waiting list, connects to its web page, and sends the HTMl to the Linkfinder class
@@ -16,11 +17,13 @@ class Spider:
     project_name = ""
     base_url = ""
     domain_name = ""
-    queue_file = ""
-    crawled_file = ""
-    r = redis.Redis(host="localhost", port=6040, db=0)
+    # queue_file = ""
+    # crawled_file = ""
+    # r = redis.Redis(host="localhost", port=6040, db=0)
     queue = set()
     crawled = set()
+    
+    
 
     def __init__(self, project_name, base_url, domain_name) -> None:
         Spider.project_name = project_name
@@ -28,15 +31,11 @@ class Spider:
         Spider.domain_name = domain_name
         Spider.queue_file = Spider.project_name + "/queue.txt"
         Spider.crawled_file = Spider.project_name + "/crawled.txt"
-        self.boot()     # make directory
+        Spider.client = MongoClient()
+        Spider.db = Spider.client.test_database
+        Spider.collection = Spider.db.test_collection
+        # self.boot()     # make directory
         self.crawl_page("First Spider", Spider.base_url)       # First spider crawls first link
-
-    @staticmethod 
-    def boot():
-        create_project_dir(Spider.project_name)
-        create_data_files(Spider.project_name, Spider.base_url)
-        Spider.queue = file_to_set(Spider.queue_file)
-        Spider.crawled = file_to_set(Spider.crawled_file)
 
     @staticmethod
     def crawl_page(thread_name, page_url):
@@ -46,7 +45,7 @@ class Spider:
             Spider.add_links_to_queue(Spider.gather_links(page_url))
             Spider.queue.remove(page_url)
             Spider.crawled.add(page_url)
-            Spider.update_files()
+            # Spider.update_files()
 
     @staticmethod
     def gather_links(page_url):
@@ -65,40 +64,12 @@ class Spider:
             print("Error crawling this page")
             return set()
 
-        return finder.page_links()
-    @staticmethod
-    def determine_link_priority(url):
-        soup = BeautifulSoup()
-        priority = 0
-        # Get the contents of the link
-        response = requests.get(url)
-        content = response.content
-
-        # Parse the HTML content
-        soup = BeautifulSoup(content, "html.parser")
-
-        # Check the number of incoming links
-        priority += len(soup.find_all("a"))
-
-        # Check for keywords in the title and body
-        title = soup.find("title").get_text()
-        body = soup.find("body").get_text()
-        keywords = ["news", "current events", "breaking"]
-        for word in keywords:
-            if word in title or word in body:
-                priority += 1
-
-        # Check for social media engagement
-        socials = ["facebook", "twitter", "instagram"]
-        social_tags = soup.find_all(socials)
-
-        priority += len(social_tags)
-
-        return priority
+        return finder.page_info()
 
     @staticmethod
-    def add_links_to_crawl(links, priority):
-        r = redis.Redis()
+    # PRIORITY NOT INCLUDED
+    def add_links_to_queue(links):
+        # r = redis.Redis()
         for url in links:
             if (url in links.queue):
                 continue
@@ -106,35 +77,9 @@ class Spider:
                 continue
             if (Spider.domain_name not in url):
                 continue
-            Spider.r.zadd("front queue", {url, priority})
-
-    def extract_max_priority_page(self):
-        """Return the highest priority link in `links_to_crawl`."""
-
-
-    # Reduce priority of similar page in crawled_links
-    def reduce_priority(url, signature):
-        r = redis.Redis()
-        # check for similarity in crawled_links
-        r.zincrby("links", -1, url)
-
-    
-    def insert_crawled_link(self, url, signature):
-        """Add the given link and its signature to `crawled_links` in the database."""
-        
-        
-
-    def crawled_similar(self, signature):
-        """Determine if we've already crawled a page matching the given signature""" 
-
-
-    # Remove visited link from links_to_crawl in the database
-    def remove_link_to_crawl(url, priority):
-        r = redis.Redis()
-        next_link = r.zrange("links", 0, 0)[0]
-        r.zrem("links", next_link)
+            Spider.queue.add(url)
 
     @staticmethod
-    def update_files():
-        set_to_file(Spider.queue, Spider.queue_file)
-        set_to_file(Spider.crawled, Spider.crawled_file)
+    def add_info_to_db(links):
+        for url in links:
+            Spider.collection.insert_one({'url': url})
